@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#10152b">
+  <title>گیم‌لند | دنیای بازی</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand"><div class="brand-mark">G</div><div><b>گیم‌لند</b><small>دنیای رقابت و سرگرمی</small></div></div>
+      <button class="icon-btn" id="profileBtn" aria-label="پروفایل">👤</button>
+    </header>
+    <section class="hero">
+      <div class="hero-copy"><span class="eyebrow">خوش اومدی قهرمان!</span><h1>آماده‌ای رکورد<br>خودتو بشکنی؟</h1><p>بازی کن، امتیاز بگیر و به صدر جدول برس.</p></div>
+      <div class="hero-art">🏆<span>✨</span></div>
+    </section>
+    <section class="stats">
+      <div class="stat"><span>🪙</span><div><b id="coins">۰</b><small>سکه</small></div></div>
+      <div class="stat"><span>⚡</span><div><b id="xp">۰</b><small>تجربه</small></div></div>
+      <div class="stat"><span>🏅</span><div><b id="level">۱</b><small>سطح</small></div></div>
+    </section>
+    <div class="section-heading"><div><span class="eyebrow">کتابخانه بازی</span><h2>کدومو بازی می‌کنی؟</h2></div><span class="pill">۸ بازی</span></div>
+    <main class="games-grid" id="gamesGrid"></main>
+    <section class="bottom-panels">
+      <div class="panel daily"><div><span class="eyebrow">جایزه امروز</span><h3>پاداش روزانه 🎁</h3><p>هر روز سر بزن و جایزه بگیر.</p><button class="primary-btn" id="dailyBtn">دریافت جایزه</button></div><div class="gift">🎁</div></div>
+      <div class="panel leaderboard"><div><span class="eyebrow">رقابت دوستانه</span><h3>جدول امتیازات</h3><p>بهترین بازیکن فعلاً: تویی! 😎</p></div><div class="medal">🥇</div></div>
+    </section>
+    <footer>گیم‌لند · بازی جوانمردانه، رقابت دوستانه 💜</footer>
+  </div>
+  <div class="modal-backdrop hidden" id="gameModal">
+    <section class="game-modal">
+      <div class="modal-head"><button class="icon-btn" id="closeGame">✕</button><div><small id="gameCategory">بازی</small><h2 id="gameTitle">عنوان بازی</h2></div><span class="game-badge">🎮</span></div>
+      <div id="gameArea" class="game-area"></div>
+      <div class="game-footer"><span id="gameStatus">شروع کن!</span><button class="secondary-btn" id="restartGame">شروع دوباره ↻</button></div>
+    </section>
+  </div>
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
