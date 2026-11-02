@@ -1,4 +1,25 @@
-const tg=window.Telegram?.WebApp; tg?.ready(); tg?.expand();
+const tg=window.Telegram?.WebApp; tg?.ready(); tg?.expand();    
+// دریافت اطلاعات اولیه کاربر از تلگرام
+const telegramUser = tg?.initDataUnsafe?.user;
+
+if (telegramUser) {
+    const firstName = telegramUser.first_name || 'قهرمان';
+
+    // نمایش نام کاربر
+    document.querySelector('.hero .eyebrow').textContent =
+        `خوش اومدی ${firstName} قهرمان!`;
+
+    // نمایش عکس پروفایل، اگر موجود باشد
+    const profileBtn = document.getElementById('profileBtn');
+
+    if (telegramUser.photo_url) {
+        profileBtn.innerHTML = `
+            <img src="${telegramUser.photo_url}"
+                 alt="پروفایل"
+                 style="width:32px;height:32px;border-radius:50%;object-fit:cover;">
+        `;
+    }
+}
 const games=[
  {id:'tic',name:'دوز',desc:'سه‌تا پشت سر هم بچین',emoji:'⭕',color:'#533b8c'},
  {id:'car',name:'ماشین‌سواری',desc:'از موانع فرار کن',emoji:'🏎️',color:'#235b78'},
