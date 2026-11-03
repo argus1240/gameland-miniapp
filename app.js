@@ -43,7 +43,119 @@ function status(s){$('gameStatus').textContent=s}
 function area(html){$('gameArea').innerHTML=html}
 function win(msg='آفرین! امتیاز گرفتی 🎉'){status(msg);reward(10);toast('+۱۰ سکه و +۲۰ تجربه')}
 function startGame(id){if(cleanup){cleanup();cleanup=null}status('بازی شروع شد');({tic,car,puzzle,aim,rps,jump,image,football})[id]();}
-function tic(){let a=Array(9).fill(''),turn='❌',done=false;area('<div class="game-note">سه خانه را در یک خط پر کن تا برنده شوی.</div><div class="board" id="ticBoard" style="grid-template-columns:repeat(3,1fr)"></div>');let b=$('ticBoard');function draw(){b.innerHTML=a.map((v,i)=>`<button data-i="${i}">${v}</button>`).join('');b.querySelectorAll('button').forEach(x=>x.onclick=()=>{let i=+x.dataset.i;if(done||a[i])return;a[i]=turn;if(check()){done=true;draw();status(turn+' برنده شد!');if(turn==='❌')win();return}if(a.every(Boolean)){done=true;status('مساوی شد!');return}turn=turn==='❌'?'⭕':'❌';draw();});}function check(){return [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]].some(q=>q.every(i=>a[i]===turn))}draw();}
+function tic(){
+  let difficulty='medium', board=Array(9).fill(''), finished=false;
+  let wins=0, losses=0, draws=0;
+
+  function menu(){
+    area(`
+      <div class="game-note">روش بازی دوز رو انتخاب کن</div>
+      <div class="choice-row" style="flex-wrap:wrap">
+        <button class="choice-btn" id="ticAI">🤖 بازی با هوش مصنوعی</button>
+        <button class="choice-btn" id="ticFriend">👥 دعوت از دوست</button>
+        <button class="choice-btn" id="ticRandom">🎲 حریف تصادفی</button>
+      </div>
+      <div class="game-note">درجه سختی هوش مصنوعی</div>
+      <div class="choice-row">
+        <button class="answer-btn" data-level="easy">آسان</button>
+        <button class="answer-btn" data-level="medium">متوسط</button>
+        <button class="answer-btn" data-level="hard">سخت</button>
+      </div>
+      <p id="ticInfo" class="game-note">در حالت سخت، هوش مصنوعی بهترین حرکت را انتخاب می‌کند.</p>
+    `);
+    document.querySelectorAll('[data-level]').forEach(b=>b.onclick=()=>{
+      difficulty=b.dataset.level;
+      document.querySelectorAll('[data-level]').forEach(x=>x.style.outline='');
+      b.style.outline='2px solid #b99cff';
+      $('ticInfo').textContent='درجه سختی انتخاب شد: '+({easy:'آسان',medium:'متوسط',hard:'سخت'}[difficulty]);
+    });
+    $('ticAI').onclick=newRound;
+    $('ticFriend').onclick=()=>onlineNotice('دعوت از دوست');
+    $('ticRandom').onclick=()=>onlineNotice('حریف تصادفی');
+  }
+
+  function onlineNotice(name){
+    area(`<div style="font-size:48px;text-align:center">🌐</div>
+      <h3 style="text-align:center">${name}</h3>
+      <p class="game-note">این بخش بعد از راه‌اندازی سرور آنلاین فعال می‌شود. فعلاً بازی واقعی از دو گوشی ممکن نیست.</p>
+      <button class="primary-btn" id="ticBack">بازگشت</button>`);
+    $('ticBack').onclick=menu;
+  }
+
+  function newRound(){
+    board=Array(9).fill(''); finished=false; draw(); status('تو ❌ هستی؛ شروع کن!');
+  }
+
+  function draw(){
+    area(`<div class="game-note">تو ❌ هستی و هوش مصنوعی ⭕ است.</div>
+      <div class="choice-row" style="justify-content:center;margin-bottom:12px">
+        <span>برد: ${wins}</span><span>باخت: ${losses}</span><span>مساوی: ${draws}</span>
+      </div>
+      <div class="board" id="ticBoard" style="grid-template-columns:repeat(3,1fr)"></div>
+      <div class="choice-row" style="margin-top:14px">
+        <button class="action-btn" id="ticAgain">دور جدید ↻</button>
+        <button class="answer-btn" id="ticMenu">انتخاب حالت</button>
+      </div>`);
+    const b=$('ticBoard');
+    b.innerHTML=board.map((v,i)=>`<button data-i="${i}" style="font-size:34px;min-height:76px">${v}</button>`).join('');
+    b.querySelectorAll('button').forEach(x=>x.onclick=()=>humanMove(+x.dataset.i));
+    $('ticAgain').onclick=newRound; $('ticMenu').onclick=menu;
+  }
+
+  function winner(a){
+    const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for(const q of lines) if(a[q[0]]&&a[q[0]]===a[q[1]]&&a[q[1]]===a[q[2]]) return a[q[0]];
+    return a.every(Boolean)?'draw':null;
+  }
+
+  function finish(r){
+    finished=true;
+    if(r==='❌'){wins++;status('تو بردی! 🏆');win('دوز رو بردی! 🎉')}
+    else if(r==='⭕'){losses++;status('هوش مصنوعی این دور رو برد؛ دوباره تلاش کن!')}
+    else {draws++;status('بازی مساوی شد!')}
+    draw();
+  }
+
+  function humanMove(i){
+    if(finished||board[i])return;
+    board[i]='❌'; let r=winner(board);
+    if(r){finish(r);return}
+    draw(); status('هوش مصنوعی در حال فکر کردنه...');
+    setTimeout(aiMove,350);
+  }
+
+  function minimax(a,aiTurn){
+    const r=winner(a);
+    if(r==='⭕')return 10; if(r==='❌')return -10; if(r==='draw')return 0;
+    let best=aiTurn?-Infinity:Infinity;
+    for(let i=0;i<9;i++)if(!a[i]){
+      a[i]=aiTurn?'⭕':'❌'; const s=minimax(a,!aiTurn); a[i]='';
+      best=aiTurn?Math.max(best,s):Math.min(best,s);
+    }
+    return best;
+  }
+
+  function aiMove(){
+    if(finished)return;
+    const options=board.map((v,i)=>v?null:i).filter(v=>v!==null);
+    if(!options.length)return;
+    let move;
+    if(difficulty==='easy'||(difficulty==='medium'&&Math.random()<0.45)){
+      move=options[Math.floor(Math.random()*options.length)];
+    }else{
+      let best=-Infinity;
+      for(const i of options){
+        board[i]='⭕'; const s=minimax(board,false); board[i]='';
+        if(s>best){best=s;move=i}
+      }
+    }
+    board[move]='⭕'; const r=winner(board);
+    if(r){finish(r);return}
+    draw(); status('نوبت توئه!');
+  }
+
+  menu();
+}
 function car(){area('<div class="game-note">با دکمه‌های چپ و راست از ماشین‌ها دوری کن. ۲۰ ثانیه دوام بیار!</div><div class="track" id="track"><div class="lane"></div><div class="player" id="player">🏎️</div></div><div class="choice-row"><button class="action-btn" id="left">⬅️</button><button class="action-btn" id="right">➡️</button></div>');let lane=1,obs=[],score=0,track=$('track'),p=$('player'),alive=true;function move(d){lane=Math.max(0,Math.min(2,lane+d));p.style.left=`calc(${(lane+0.5)*33.333}% - 18px)`}$('left').onclick=()=>move(-1);$('right').onclick=()=>move(1);let t=setInterval(()=>{if(!alive)return;score++;let o=document.createElement('span');o.className='obstacle';o.textContent='🚧';o.style.left=(Math.floor(Math.random()*3)*33+8)+'%';track.append(o);obs.push({el:o,y:-40,lane:Math.round((parseFloat(o.style.left)-8)/33)});obs.forEach(x=>{x.y+=7;x.el.style.top=x.y+'px';if(x.y>160&&x.y<215&&x.lane===lane)finish(false);if(x.y>245)x.el.remove()});obs=obs.filter(x=>x.y<250);if(score>=200)finish(true)},100);function finish(ok){if(!alive)return;alive=false;clearInterval(t);status(ok?'رکورد عالی!':'برخورد کردی! امتیاز: '+score);if(ok)win()}cleanup=()=>{alive=false;clearInterval(t)};}
 function puzzle(){let a=[1,2,3,4,5,6,7,8,0];for(let i=0;i<35;i++){let z=a.indexOf(0),opts=[z-3,z+3,...(z%3?[z-1]:[]),...(z%3<2?[z+1]:[])].filter(n=>n>=0&&n<9&&Math.abs(Math.floor(n/3)-Math.floor(z/3))+Math.abs(n%3-z%3)===1),n=opts[Math.floor(Math.random()*opts.length)];[a[z],a[n]]=[a[n],a[z]]}area('<p class="game-note">عددها رو از ۱ تا ۸ مرتب کن.</p><div class="puzzle" id="puzzle"></div>');let el=$('puzzle');function draw(){el.innerHTML=a.map((v,i)=>`<button class="${v?'':'blank'}" data-i="${i}">${v||''}</button>`).join('');el.querySelectorAll('button').forEach(b=>b.onclick=()=>{let i=+b.dataset.i,z=a.indexOf(0);if([z-3,z+3,z-1,z+1].includes(i)&&Math.abs(Math.floor(i/3)-Math.floor(z/3))+Math.abs(i%3-z%3)===1){[a[z],a[i]]=[a[i],a[z]];draw();if(a.join(',')==='1,2,3,4,5,6,7,8,0')win('پازل حل شد!')}})}draw();}
 function aim(){let score=0,time=15;area('<p class="game-note">هرچندتا هدف می‌تونی در ۱۵ ثانیه لمس کن!</p><div class="meter"><div id="timebar"></div></div><button class="target" id="target" style="width:110px;height:110px;border-radius:50%;font-size:48px">🎯</button><b id="aimScore">۰</b>');let target=$('target');target.onclick=()=>{score++;$('aimScore').textContent=score.toLocaleString('fa-IR');target.style.marginRight=Math.random()*100-50+'px';target.style.marginTop=Math.random()*30+'px'};let t=setInterval(()=>{time--;$('timebar').style.width=(time/15*100)+'%';if(time<=0){clearInterval(t);status('تعداد هدف: '+score);if(score>=5)win()}},1000);cleanup=()=>clearInterval(t);}
