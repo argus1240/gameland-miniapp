@@ -44,8 +44,92 @@ function area(html){$('gameArea').innerHTML=html}
 function win(msg='آفرین! امتیاز گرفتی 🎉'){status(msg);reward(10);toast('+۱۰ سکه و +۲۰ تجربه')}
 function startGame(id){if(cleanup){cleanup();cleanup=null}status('بازی شروع شد');({tic,car,puzzle,aim,rps,jump,image,football})[id]();}
 function tic(){
-  let difficulty='medium', board=Array(9).fill(''), finished=false;
-  let wins=0, losses=0, draws=0;
+  let difficulty='medium', player='❌', ai='⭕', board=Array(9).fill('');
+  let finished=false, wins=Number(localStorage.glTicWins||0);
+  let losses=Number(localStorage.glTicLosses||0), draws=Number(localStorage.glTicDraws||0);
+
+  function sound(freq=600,duration=.12){
+    try{
+      const C=window.AudioContext||window.webkitAudioContext;if(!C)return;
+      const ctx=new C(),osc=ctx.createOscillator(),gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);osc.frequency.value=freq;gain.gain.value=.06;
+      osc.start();gain.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+duration);
+      osc.stop(ctx.currentTime+duration);osc.onended=()=>ctx.close();
+    }catch(e){}
+  }
+  function menu(){
+    area(`<div class="game-note">حالت بازی رو انتخاب کن</div>
+    <div class="choice-row" style="flex-wrap:wrap">
+    <button class="choice-btn" id="ticAI">🤖 بازی با هوش مصنوعی</button>
+    <button class="choice-btn" id="ticFriend">👥 دعوت از دوست</button>
+    <button class="choice-btn" id="ticRandom">🎲 حریف تصادفی</button></div>
+    <div class="game-note">علامت تو کدوم باشه؟</div>
+    <div class="choice-row"><button class="answer-btn" id="ticX">❌ ضربدر</button><button class="answer-btn" id="ticO">⭕ دایره</button></div>
+    <div class="game-note">درجه سختی هوش مصنوعی</div>
+    <div class="choice-row"><button class="answer-btn" data-level="easy">آسان</button><button class="answer-btn" data-level="medium">متوسط</button><button class="answer-btn" data-level="hard">سخت</button></div>
+    <p id="ticInfo" class="game-note">آمار برد و باختت ذخیره می‌شه.</p>
+    <div class="choice-row"><span>🏆 برد: ${wins}</span><span>💔 باخت: ${losses}</span><span>🤝 مساوی: ${draws}</span></div>`);
+    $('ticX').onclick=()=>{player='❌';ai='⭕';sound(650);};
+    $('ticO').onclick=()=>{player='⭕';ai='❌';sound(750);};
+    document.querySelectorAll('[data-level]').forEach(b=>b.onclick=()=>{
+      difficulty=b.dataset.level;document.querySelectorAll('[data-level]').forEach(x=>x.style.outline='');
+      b.style.outline='2px solid #b99cff';$('ticInfo').textContent='سختی انتخاب‌شده: '+({easy:'آسان',medium:'متوسط',hard:'سخت'}[difficulty]);
+    });
+    $('ticAI').onclick=newRound;
+    $('ticFriend').onclick=()=>onlineNotice('دعوت از دوست');
+    $('ticRandom').onclick=()=>onlineNotice('حریف تصادفی');
+  }
+  function onlineNotice(name){
+    area(`<div style="font-size:48px;text-align:center">🌐</div><h3 style="text-align:center">${name}</h3>
+    <p class="game-note">این بخش بعد از راه‌اندازی سرور آنلاین فعال می‌شه.</p><button class="primary-btn" id="ticBack">بازگشت</button>`);
+    $('ticBack').onclick=menu;
+  }
+  function newRound(){
+    board=Array(9).fill('');finished=false;draw();
+    if(player==='⭕'){status('تو ⭕ هستی؛ هوش مصنوعی ❌ شروع می‌کنه.');setTimeout(aiMove,400);}
+    else status('تو ❌ هستی؛ شروع کن!');
+  }
+  function winningLine(a){
+    const lines=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    return lines.find(q=>a[q[0]]&&a[q[0]]===a[q[1]]&&a[q[1]]===a[q[2]])||null;
+  }
+  function result(a){const line=winningLine(a);return line?a[line[0]]:(a.every(Boolean)?'draw':null);}
+  function draw(line=[]){
+    area(`<div class="game-note">تو ${player} · هوش مصنوعی ${ai}</div>
+    <div class="choice-row" style="justify-content:center;margin-bottom:12px"><span>🏆 برد: ${wins}</span><span>💔 باخت: ${losses}</span><span>🤝 مساوی: ${draws}</span></div>
+    <div class="board" id="ticBoard" style="grid-template-columns:repeat(3,1fr);gap:9px"></div>
+    <div class="choice-row" style="margin-top:14px"><button class="action-btn" id="ticAgain">دور جدید ↻</button><button class="answer-btn" id="ticMenu">انتخاب حالت</button></div>`);
+    const b=$('ticBoard');
+    b.innerHTML=board.map((v,i)=>`<button data-i="${i}" style="font-size:38px;min-height:78px;border-radius:16px;transition:transform .2s,background .2s;${line.includes(i)?'background:linear-gradient(135deg,#6844a8,#b18aff);transform:scale(1.04);box-shadow:0 0 18px #a77cff;':''}">${v}</button>`).join('');
+    b.querySelectorAll('button').forEach(x=>x.onclick=()=>humanMove(+x.dataset.i));
+    $('ticAgain').onclick=newRound;$('ticMenu').onclick=menu;
+  }
+  function finish(r){
+    finished=true;const line=winningLine(board)||[];
+    if(r===player){wins++;localStorage.glTicWins=wins;sound(880,.25);status('تو برنده شدی! 🏆🎉');win('قهرمان دوز شدی!');}
+    else if(r===ai){losses++;localStorage.glTicLosses=losses;sound(220,.3);status('این دور رو هوش مصنوعی برد؛ دوباره تلاش کن!');}
+    else{draws++;localStorage.glTicDraws=draws;sound(440,.2);status('بازی مساوی شد! 🤝');}
+    draw(line);
+  }
+  function minimax(a,isAI){
+    const r=result(a);if(r===ai)return 10;if(r===player)return -10;if(r==='draw')return 0;
+    let best=isAI?-Infinity:Infinity;
+    for(let i=0;i<9;i++)if(!a[i]){a[i]=isAI?ai:player;const score=minimax(a,!isAI);a[i]='';best=isAI?Math.max(best,score):Math.min(best,score);}
+    return best;
+  }
+  function aiMove(){
+    if(finished)return;const options=board.map((v,i)=>v?null:i).filter(v=>v!==null);if(!options.length)return;
+    let move;
+    if(difficulty==='easy'||(difficulty==='medium'&&Math.random()<.45))move=options[Math.floor(Math.random()*options.length)];
+    else{let best=-Infinity;for(const i of options){board[i]=ai;const score=minimax(board,false);board[i]='';if(score>best){best=score;move=i;}}}
+    board[move]=ai;sound(420);const r=result(board);if(r){finish(r);return;}draw();status('نوبت توئه!');
+  }
+  function humanMove(i){
+    if(finished||board[i])return;board[i]=player;sound(680);const r=result(board);
+    if(r){finish(r);return;}draw();status('هوش مصنوعی در حال فکر کردنه...');setTimeout(aiMove,350);
+  }
+  menu();
+}
 
   function menu(){
     area(`
